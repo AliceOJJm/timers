@@ -57,10 +57,13 @@ For processing these tasks/timers the project utilizes sidekiq - the service for
 
 ### Launch the app
 
-Run the following commands in the terminal from the project root folder
+Run the following commands in the terminal from the project root folder:
 ```
 scp .env.example .env
 docker compose up
+```
+In separate terminal process:
+```
 docker-compose run app rake db:create db:migrate
 ```
 
