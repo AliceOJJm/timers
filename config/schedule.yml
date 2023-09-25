@@ -1,0 +1,3 @@
+timer_execution_scheduler_job:
+  cron: "*/5 * * * *"
+  class: 'TimerSchedulerJob'

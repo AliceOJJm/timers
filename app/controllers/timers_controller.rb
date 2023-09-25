@@ -3,7 +3,9 @@ class TimersController < ::ApplicationController
     form = ::TimerForm.new(url: params[:url], hours: params[:hours], minutes: params[:minutes], seconds: params[:seconds])
 
     if form.submit
-      render json: present_timer(form.timer), status: 201
+      timer = form.timer
+      schedule_timer_execution(timer) if timer.execution_time < ::Time.current + 6.minutes
+      render json: present_timer(timer), status: 201
     else
       render json: { error: { code: :invalid_params, message: form.errors.full_messages.join("\n") } }, status: 422
     end
@@ -16,6 +18,11 @@ class TimersController < ::ApplicationController
   end
 
   private
+
+  def schedule_timer_execution(timer)
+    ::TimerExecutionJob.set(wait_until: timer.execution_time).perform_later(timer)
+    timer.update_columns(status: :scheduled)
+  end
 
   def present_timer(timer)
     { id: timer.id, time_left: [(timer.execution_time - ::Time.current).to_i, 0].max }

@@ -10,6 +10,7 @@ RSpec.describe TimersController, type: :controller do
 
     context 'with valid params' do
       let(:params) { valid_params }
+      let(:created_timer) { ::Timer.last }
 
       it 'resturns timer data' do
         create
@@ -19,9 +20,24 @@ RSpec.describe TimersController, type: :controller do
 
       it 'creates the timer' do
         expect { create }.to change { ::Timer.count }.by(1)
-        timer = ::Timer.last
-        expect(timer.execution_time).to eq(::Time.current + 601)
-        expect(timer.url).to eq('https://google.com')
+        expect(created_timer.execution_time).to eq(::Time.current + 601)
+        expect(created_timer.url).to eq('https://google.com')
+      end
+
+      context 'when timer is due in the next 6 minutes' do
+        let(:params) { valid_params.dup.merge(minutes: 3) }
+
+        it 'schedules timer execution job' do
+          expect { create }.to enqueue_job(::TimerExecutionJob).with(::Timer.last)
+          expect(created_timer.status).to eq('scheduled')
+        end
+      end
+
+      context 'when timer is due in 6+ minutes' do
+        it 'doesnt schedule timer execution job' do
+          expect { create }.not_to enqueue_job(::TimerExecutionJob).with(::Timer.last)
+          expect(created_timer.status).to eq('pending')
+        end
       end
     end
 
