@@ -1,4 +1,4 @@
-## Lemonade Timers
+## Timers
 
 Rails Web App that allows to easily execute scheduled tasks.
 
