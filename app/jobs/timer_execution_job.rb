@@ -2,8 +2,11 @@ require 'net/http'
 
 class TimerExecutionJob < ::ApplicationJob
   def perform(timer)
-    return if timer.status == 'executed'
+    timer.with_lock do
+      return if timer.status.in?(%w[executing executed])
 
+      timer.update!(status: :executing)
+    end
     uri = URI(timer.url)
     uri.path = uri.path.concat("/#{timer.id.to_s}").squeeze('/')
     begin

@@ -37,7 +37,7 @@ RSpec.describe TimerExecutionJob, type: :job do
 
       include_examples 'performs the request'
 
-      context 'when the request_urluest times out' do
+      context 'when the request_url times out' do
         before { stub_request(:post, request_url).to_timeout }
 
         include_examples 'performs the request'

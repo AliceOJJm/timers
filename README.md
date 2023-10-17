@@ -40,10 +40,10 @@ Response example:
 
 ### How this app ensures tasks are scheduled and executed exactly once without being lost
 
-Each task/timer has a status - possible values: `pending` (default), `scheduled`, `executed`.
-When the timer is created, if the execution time is less than 6 minutes from now, the background job is scheduled for that time right away, and the timer status is set to `scheduled`. Otherwise, for other execution times, there is a cron sidekiq job that runs every 5 minutes and picks up timers due in the next 5 minutes to schedule it. We don't want to schedule all timers on creation because the sidekiq queue (stored in Redis) will become too big really fast and it could impact sidekiq performance. The cron job would also pick up non `executed` timers that are overdue (in case sidekiq server is not accessible for some time or in case of scheduled jobs Redis data loss).
+Each task/timer has a status - possible values: `pending` (default), `scheduled`, `executing`, `executed`.
+When the timer is created, if the execution time is less than 5 minutes (+5 seconds) from now, the background job is scheduled for that time right away, and the timer status is set to `scheduled`. Otherwise, for other execution times, there is a cron sidekiq job that runs every 5 minutes and picks up timers due in the next 5 minutes to schedule it. We don't want to schedule all timers on creation because the sidekiq queue (stored in Redis) will become too big really fast and it could impact sidekiq performance. The cron job would also pick up non `executed` timers that are overdue (in case sidekiq server is not accessible for some time or in case of scheduled jobs Redis data loss).
 
-I did not utilize timer table row locking when calling the webhook and updating timer status to `executed` (see `TimerSchedulerJob`) as this lock time would depend on the external API request execution time, the row would be not accessible for reading in the meantime. In case of multiple jobs scheduled for the same timer the race condition could occur, resulting in calling the webhook twice. If we prefer consistency over timer data accessibility via API, we can wrap webhook call & timer status update into lock.
+I did not utilize timer table row locking when calling the webhook and updating timer status to `executed` (see `TimerSchedulerJob`) as this lock time would depend on the external API request execution time, the row would be not accessible for reading in the meantime. Instead I introduced `executing` status that is set under the lock upon the job start and would not allow two processes to execute the url call.
 
 ### Scaling possibilities
 
